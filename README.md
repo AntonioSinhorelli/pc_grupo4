@@ -11,9 +11,9 @@ Transição) publicada em MkDocs.
 
 | Item | Link |
 |---|---|
-| API publicada | `http://<IP-PUBLICO>:8000/api/` *(preencher com o IP/Elastic IP da EC2)* |
-| Django Admin | `http://<IP-PUBLICO>:8000/admin/` |
-| Health check | `http://<IP-PUBLICO>:8000/health/` |
+| API publicada | <http://77.112.118.58:8000/api/> *(Elastic IP da EC2)* |
+| Django Admin | <http://77.112.118.58:8000/admin/> |
+| Health check | <http://77.112.118.58:8000/health/> |
 | Site MkDocs | <https://projetos-de-extensao.github.io/PC_ADS_26.2_8001_IV/> |
 
 ## Arquitetura da solução
@@ -146,7 +146,8 @@ docker compose run --rm web python manage.py test -v 2
 
 ### 1) Criar a instância e o Security Group
 
-- **AMI:** Ubuntu Server 24.04 LTS · **Tipo:** `t3.small` (mínimo) ou `t3.medium` (recomendado) · **Disco:** 20 GB gp3.
+- **Região:** us-east-2 (Ohio) · **AMI:** Ubuntu Server 24.04 LTS · **Tipo:** `c7i-flex.large` (2 vCPU, 4 GB; tipo elegível ao plano gratuito da conta) · **Disco:** 20 GB gp3 criptografado.
+- Criada com `src/scripts/aws/criar_infra.sh` (AWS CLI no CloudShell).
 - **Security Group (entrada):** SSH **22** apenas do seu IP; **8000** (API) do seu IP e do IP de quem vai avaliar
   (ou `0.0.0.0/0` apenas durante a avaliação). **Nunca libere a 5432.**
 - Associe um **Elastic IP** (evita o IP mudar ao reiniciar a instância).

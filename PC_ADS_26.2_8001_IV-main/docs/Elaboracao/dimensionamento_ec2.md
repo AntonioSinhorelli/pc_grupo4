@@ -1023,3 +1023,15 @@ DB --> VOL : /var/lib/postgresql/data
 | SSH | 22 | IP do grupo | Administração e deploy |
 | HTTP personalizado | 8000 | IP do grupo e do avaliador (ou `0.0.0.0/0` só durante a avaliação) | API e Admin |
 | PostgreSQL | 5432 | **Nenhuma** | Banco acessível apenas pela rede interna do Compose |
+
+### 14.5 Configuração efetivamente implantada
+
+| Item | Valor |
+| :--- | :--- |
+| Região | us-east-2 (Ohio) |
+| Tipo | `c7i-flex.large` (2 vCPU, 4 GB) — mesma memória do `t3.medium` dimensionado; escolhido por ser elegível ao plano gratuito da conta, que não aceita `t3.medium` |
+| Disco | gp3 20 GB criptografado |
+| Elastic IP | 77.112.118.58 |
+| Security Group | `lastmile-ap2-sg`: 22 (IP do grupo) e 8000; 5432 fechada |
+| Criação | `src/scripts/aws/criar_infra.sh` |
+
