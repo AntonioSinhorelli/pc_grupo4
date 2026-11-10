@@ -261,6 +261,11 @@ O total de pedidos (`count`) é o mesmo antes e depois de recriar os containers.
 ![count depois](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/14_persist_depois.png)
 
 ### 7. Infraestrutura na AWS
+> **Nota sobre o Security Group:** o print das regras de entrada foi tirado com a porta 8000 liberada
+> apenas para o IP do grupo. Para a avaliação, a regra foi ampliada para `0.0.0.0/0` (porta 8000) a fim de
+> a API ficar acessível ao avaliador; a 22 continua restrita ao IP do grupo e a 5432 permanece fechada.
+> Após a avaliação a regra pública é removida (`revoke-security-group-ingress`).
+
 ![EC2 em execução](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/15_ec2_instancia.png)
 
 ![Elastic IP e Security Group](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/16_ec2_ip_elastico.png)
