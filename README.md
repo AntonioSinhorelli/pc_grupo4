@@ -219,15 +219,57 @@ gunzip -c backups/ARQUIVO.sql.gz | docker compose exec -T db sh -c 'psql -U "$PO
 
 ## Evidências do deploy (B8)
 
-Capturar na EC2 depois do deploy e salvar em `PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/`:
+Capturadas em 08/11/2026 na EC2 `lastmile-ap2` (us-east-2, `c7i-flex.large`, Elastic IP 77.112.118.58).
+As imagens ficam em `PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/`.
 
-- [ ] `docker ps` — containers `web` e `db` em execução
-- [ ] `docker compose logs web` — migrate, collectstatic e gunicorn iniciando
-- [ ] Navegador/`curl` em `http://<IP-PUBLICO>:8000/api/produtos/` e `/admin/`
-- [ ] Tabela no Postgres: `docker compose exec db sh -c 'psql -U $POSTGRES_USER -d $POSTGRES_DB -c "\d loja_produto"'` (mostra o índice GIN)
-- [ ] Teste de persistência (antes e depois do `down`/`up`)
-- [ ] Security Group com 22 e 8000 e **sem** 5432
-- [ ] Consumo de recursos: `docker stats --no-stream`, `free -h`, `df -h /` (arquivo `18_recursos.png`)
+### 1. Containers em execução (`docker ps`)
+![docker ps](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/01_docker_ps.png)
+
+### 2. Logs do `web` (migrate, collectstatic, seed e gunicorn)
+![docker compose logs web](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/02_compose_logs.png)
+
+### 3. Tabela no Postgres via `psql` (índice GIN em `atributos`)
+![psql \d loja_produto](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/03_psql_tabela_gin.png)
+
+![psql \dt](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/04_psql_tabelas.png)
+
+### 4. Acesso à API, filtro JSONB, health check e Admin
+![GET /api/produtos/](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/05_api_produtos.png)
+
+![GET /api/produtos/?atributos__cor=azul](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/06_api_filtro_json.png)
+
+![GET /health/](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/07_health.png)
+
+![Django Admin - login](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/08_admin_login.png)
+
+![Django Admin - models](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/09_admin_models.png)
+
+### 5. Transação com rollback (checkout)
+Pedido válido grava pedido, itens, entrega e evento e baixa o estoque; pedido acima do estoque devolve 409 sem gravar nada.
+
+![POST /api/pedidos/ - 201](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/10_checkout_ok.png)
+
+![POST /api/pedidos/ - 409 Conflict](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/11_checkout_rollback.png)
+
+### 6. Persistência (`down` e `up` sem `-v`)
+O total de pedidos (`count`) é o mesmo antes e depois de recriar os containers.
+
+![count antes](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/12_persist_antes.png)
+
+![docker compose down e up](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/13_persist_down_up.png)
+
+![count depois](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/14_persist_depois.png)
+
+### 7. Infraestrutura na AWS
+![EC2 em execução](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/15_ec2_instancia.png)
+
+![Elastic IP e Security Group](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/16_ec2_ip_elastico.png)
+
+![Regras de entrada: só 22 e 8000](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/17_sg_regras.png)
+
+### 8. Consumo de recursos
+![docker stats, free e df](PC_ADS_26.2_8001_IV-main/docs/assets/evidencias/18_recursos.png)
+
 
 ## Segurança
 
