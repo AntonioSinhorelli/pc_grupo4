@@ -878,3 +878,137 @@ Preços de referência sob demanda na região us-east-1, conferidos na AWS Prici
 | :--- | :--- | :--- | :--- |
 | 0.1 | 29/10/2026 | Grupo E-commerce | Criação do documento a partir do modelo SwiftTrack. |
 | 1.0 | 29/10/2026 | Grupo E-commerce | Premissas de carga, classes, diagramas, memória de cálculo e custos do e-commerce. |
+
+---
+
+## 13. Adendo AP2 — Banco de dados: PostgreSQL em Docker (volume) × Amazon RDS
+
+### 13.1 Modelo de dados implantado
+
+```plantuml
+@startuml
+title Modelo relacional + documento (AP2)
+hide circle
+skinparam linetype ortho
+
+entity Categoria {
+  id PK
+  nome, slug
+}
+entity Produto {
+  id PK
+  categoria_id FK
+  sku, nome, preco, estoque
+  atributos JSONB (GIN)
+}
+entity Cliente {
+  id PK
+  nome, email, telefone
+}
+entity Pedido {
+  id PK
+  cliente_id FK
+  status, total, endereco_entrega
+}
+entity ItemPedido {
+  id PK
+  pedido_id FK, produto_id FK
+  quantidade, preco_unitario
+}
+entity Entregador {
+  id PK
+  nome
+}
+entity Entrega {
+  id PK
+  pedido_id FK 1:1, entregador_id FK
+  status
+}
+entity EventoRastreamento {
+  id PK
+  entrega_id FK
+  status, latitude, longitude
+  dados JSONB (GIN)
+}
+
+Categoria ||--o{ Produto
+Cliente ||--o{ Pedido
+Pedido ||--|{ ItemPedido
+Produto ||--o{ ItemPedido
+Pedido ||--o| Entrega
+Entregador ||--o{ Entrega
+Entrega ||--o{ EventoRastreamento
+@enduml
+```
+
+`Pedido` ↔ `Produto` é uma relação **muitos-para-muitos** materializada por `ItemPedido`
+(com `quantidade` e `preco_unitario`). A parte **documento** é o JSONB: `Produto.atributos` (cada
+categoria tem atributos diferentes) e `EventoRastreamento.dados` (payload livre do app do entregador).
+
+### 13.2 Medições reais (PostgreSQL 16, carga sintética)
+
+Foi gerada uma carga de **20 000 produtos, 20 000 clientes, 30 000 pedidos, 90 000 itens, 30 000
+entregas e 180 000 eventos** e executados `VACUUM ANALYZE` e `pg_total_relation_size`
+(tabela + índices + TOAST):
+
+| Tabela | Linhas | Total (MB) | Bytes/linha (com índices) |
+| :--- | ---: | ---: | ---: |
+| `loja_cliente` | 20 000 | 5,84 | 292 |
+| `loja_produto` | 20 000 | 12,51 | 625 |
+| `loja_pedido` | 30 000 | 5,39 | 180 |
+| `loja_itempedido` | 90 000 | 15,56 | 173 |
+| `loja_entrega` | 30 000 | 4,80 | 160 |
+| `loja_eventorastreamento` | 180 000 | 45,41 | 252 |
+
+Índices GIN: `produto_atributos_gin` = 4,66 MB; `evento_dados_gin` = 6,26 MB.
+
+**Efeito do índice GIN** (busca por `{"ocorrencia": "avaria"}`, presente em 0,1% dos 180 000 eventos):
+
+| Consulta | Plano | Tempo de execução |
+| :--- | :--- | ---: |
+| `dados @> '{"ocorrencia":"avaria"}'` (contenção) | **Bitmap Index Scan** em `evento_dados_gin` | **0,36 ms** |
+| `dados -> 'ocorrencia' = '"avaria"'` (extração de chave) | Parallel Seq Scan (descarta ~180 000 linhas) | 16,8 ms |
+
+Por isso o filtro da API (`?dados__ocorrencia=avaria`) é traduzido para **contenção `@>`**
+(`loja/filters.py`) e não para extração de chave: o GIN padrão só acelera operadores de contenção/existência.
+
+### 13.3 Projeção de volume (12 meses)
+
+Premissa: 150 000 pedidos/mês, 3 itens por pedido e 6 eventos de rastreamento por entrega.
+
+| Item | Cálculo | Resultado |
+| :--- | :--- | ---: |
+| Bytes por pedido completo | 180 + 3×173 + 160 + 6×252 | ≈ 2 372 B |
+| Pedidos/mês | 150 000 × 2 372 B | ≈ 356 MB |
+| Clientes (200 mil) + produtos (20 mil) | 200 000×292 + 20 000×625 | ≈ 71 MB |
+| 12 meses | 71 MB + 12 × 356 MB | ≈ 4,3 GB |
+| 12 meses com 30% de folga (*bloat*, WAL, dumps) | 4,3 × 1,3 | **≈ 5,6 GB** |
+
+Conclusão: os 20 GB gp3 da EC2 comportam o banco por mais de 12 meses, inclusive com backups locais
+comprimidos (o dump comprimido da carga de teste ocupa ~4 MB).
+
+### 13.4 Comparação: volume Docker na EC2 × Amazon RDS
+
+| Critério | PostgreSQL em Docker (volume `pgdata`) | Amazon RDS for PostgreSQL |
+| :--- | :--- | :--- |
+| Custo mensal (estimativa) | Incluído na EC2 (≈ US$ 0 adicional; +US$ 1,6 de EBS) | `db.t4g.micro` Single-AZ ≈ US$ 12 + 20 GB gp3 ≈ US$ 2,3 → **≈ US$ 14**; Multi-AZ ≈ dobro |
+| Backup | Manual: `scripts/backup.sh` (`pg_dump`), RPO = intervalo do cron | Automático, retenção até 35 dias, **PITR** (RPO de minutos) |
+| Alta disponibilidade | Nenhuma; EC2 única | Multi-AZ com *failover* automático |
+| Atualizações / patches | Responsabilidade do grupo (trocar a tag da imagem) | Janela de manutenção gerenciada |
+| Segurança | Porta fechada no SG; disco sem criptografia (a menos que o EBS seja criptografado) | SG dedicado, criptografia em repouso (KMS) e em trânsito |
+| Monitoramento | `docker stats`, logs | CloudWatch / Performance Insights |
+| Desempenho | Compartilha CPU/RAM com a API | Recursos dedicados |
+| Persistência | Sobrevive a `down`/`up`; **perdida** se o volume ou o disco for apagado (`down -v`) | Independente do ciclo de vida da EC2 |
+| Portabilidade | Mesmo `docker compose` no Windows e na EC2 | Depende de endpoint AWS |
+
+**Decisão AP2:** PostgreSQL em Docker com volume nomeado — menor custo e ambiente idêntico ao de
+desenvolvimento, suficiente para ~5,6 GB em 12 meses. **Gatilho de migração para RDS:** necessidade de
+RPO < 1 h, mais de uma instância de aplicação ou exigência de Multi-AZ; a migração é um
+`pg_dump`/`pg_restore` (já testado, ver abaixo) e a troca de `POSTGRES_HOST` no `.env`.
+
+### 13.5 Backup e restauração validados
+
+`pg_dump | gzip` do banco de teste (330 mil linhas) seguido de restauração em banco vazio recuperou as
+**180 000 linhas** de `loja_eventorastreamento` e recriou `evento_dados_gin ... USING gin (dados)`.
+Procedimento: `./scripts/backup.sh` (mantém 7 cópias em `backups/`, fora do Git) e restauração com
+`gunzip -c arquivo.sql.gz | docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"'`.

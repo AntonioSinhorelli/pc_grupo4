@@ -156,6 +156,6 @@ Para implementar a visão proposta, a arquitetura AWS foi desenhada com os segui
 | Versão | Data | Descrição da Alteração | Autor(es) |
 |---|---|---|---|
 | 0.1 | [04/09/2026] | Criação da estrutura inicial do documento, com base no padrão RUP/UP e no modelo de referência da disciplina. | [Ricardo] |
-| 0.2 | [dd/mm/aaaa] | Inclusão do posicionamento de mercado e da descrição dos stakeholders. | [Nome] |
-| 0.3 | [dd/mm/aaaa] | Detalhamento da arquitetura AWS e dos atributos de qualidade (SLAs/SLOs). | [Nome] |
-| 1.0 | [dd/mm/aaaa] | Versão final revisada para entrega acadêmica. | [Nome] |
+| 0.2 | 15/09/2026 | Inclusão do posicionamento de mercado e da descrição dos stakeholders. | Grupo IV |
+| 0.3 | 29/10/2026 | Detalhamento da arquitetura AWS e dos atributos de qualidade (SLAs/SLOs). | Grupo IV |
+| 1.0 | 08/11/2026 | Versão final para a AP2: arquitetura implantada em EC2 + Docker + PostgreSQL (ver Requisitos Suplementares §15). | Grupo IV |

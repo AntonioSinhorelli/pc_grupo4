@@ -1,0 +1,7 @@
+# Garante LF em scripts que rodam em Linux (o código é editado no Windows)
+* text=auto
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.png binary
+*.pdf binary

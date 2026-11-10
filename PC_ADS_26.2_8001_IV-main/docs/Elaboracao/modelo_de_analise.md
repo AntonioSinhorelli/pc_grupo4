@@ -747,3 +747,41 @@ MON --> DATA : Detecta fraude e\nanomalias de acesso
 ---
 
 *Documento gerado com base no modelo de referência SwiftTrack IoT, adaptado para o domínio de e-commerce.*
+
+---
+
+## Adendo AP2 — Mapa dos módulos implementados
+
+```plantuml
+@startuml
+title Mapa de modulos - projeto lastmile / app loja
+skinparam packageStyle rectangle
+package "lastmile (projeto)" {
+  [settings.py\n(variaveis de ambiente)] as ST
+  [urls.py\n(/api, /admin, /health)] as UR
+}
+package "loja (app)" {
+  [models.py\n8 models, 2 indices GIN] as MD
+  [services.py\ncriar_pedido, cancelar_pedido,\nregistrar_evento] as SV
+  [filters.py\nfiltro generico por chave JSON] as FL
+  [views.py / serializers.py\nDRF] as VW
+  [admin.py] as AD
+  [management/commands\nseed_dados, criar_superusuario] as CM
+  [tests.py\n22 testes] as TS
+}
+UR --> VW
+VW --> SV
+VW --> FL
+SV --> MD
+AD --> MD
+CM --> MD
+TS ..> VW
+TS ..> SV
+@enduml
+```
+
+| Requisito de análise | Classe/módulo real |
+| :--- | :--- |
+| Catálogo com atributos variáveis | `Produto.atributos` (JSONB + GIN) |
+| Registro do pedido com estoque consistente | `Pedido`, `ItemPedido`, `services.criar_pedido` |
+| Rastreamento da entrega | `Entrega`, `EventoRastreamento.dados` (JSONB + GIN) |

@@ -1156,3 +1156,48 @@ Soma das estimativas dos documentos de RDS e EC2 com os demais serviços usados 
 | :--- | :--- | :--- | :--- |
 | 0.1 | 29/10/2026 | Grupo E-commerce | Criação do documento a partir do modelo SwiftTrack. |
 | 1.0 | 29/10/2026 | Grupo E-commerce | Sete fluxos do e-commerce com diagramas, diagrama de classes consolidado, matriz e orçamento consolidado. |
+
+---
+
+## 9. Adendo AP2 — Diagrama de sequência da solução implantada
+
+Fluxo de **checkout** (`POST /api/pedidos/`) executado pela API Django na EC2:
+
+```plantuml
+@startuml
+title Sequencia - Checkout transacional (AP2)
+autonumber
+actor Cliente
+participant "gunicorn / Django REST\n(container web)" as API
+participant "services.criar_pedido\n(transaction.atomic)" as SVC
+database "PostgreSQL 16\n(container db)" as PG
+
+Cliente -> API : POST /api/pedidos/ (cliente, itens[])
+API -> API : valida payload (serializer)
+API -> SVC : criar_pedido(...)
+SVC -> PG : BEGIN
+SVC -> PG : SELECT produtos FOR UPDATE (ordem por id)
+alt estoque suficiente
+  SVC -> PG : INSERT pedido, itens
+  SVC -> PG : UPDATE estoque = estoque - qtd
+  SVC -> PG : INSERT entrega + evento (JSONB)
+  SVC -> PG : COMMIT
+  SVC --> API : pedido
+  API --> Cliente : 201 Created
+else sem estoque / produto indisponível
+  SVC -> PG : ROLLBACK
+  SVC --> API : RegraDeNegocioError
+  API --> Cliente : 409 Conflict (nada gravado)
+end
+@enduml
+```
+
+### 9.1 Implantação × componentes
+
+| Componente lógico (Elaboração) | Realização na AP2 |
+| :--- | :--- |
+| API de pedidos / catálogo / logística | App Django `loja` no contêiner `web` |
+| Banco relacional + documento | PostgreSQL 16 (tabelas + JSONB/GIN) no contêiner `db` |
+| Segredos | Arquivo `.env` na EC2 (fora do Git) |
+| Deploy | `scripts/deploy.sh` (Compose) |
+| Balanceador, WAF, CloudFront, RDS Multi-AZ | **Evolução futura** descrita nos demais documentos, não implantada na AP2 |

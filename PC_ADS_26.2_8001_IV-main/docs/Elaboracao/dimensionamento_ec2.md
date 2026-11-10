@@ -951,3 +951,75 @@ A **transferência de dados** responde por 64% do custo desta camada. Por isso, 
 | :--- | :--- | :--- | :--- |
 | 0.1 | 29/10/2026 | Grupo E-commerce | Criação do documento a partir do modelo SwiftTrack. |
 | 1.0 | 29/10/2026 | Grupo E-commerce | Premissas de carga, classes, diagramas, memória de cálculo e custos do e-commerce. |
+
+---
+
+## 14. Adendo AP2 — Dimensionamento da instância EC2 com Docker Compose
+
+### 14.1 Cargas por contêiner
+
+| Contêiner | Processo | vCPU (pico) | Memória (pico) | Observação |
+| :--- | :--- | :--- | :--- | :--- |
+| `web` | gunicorn, 2 workers sync | 0,5 – 1,0 | 300 – 450 MB | Django + DRF + WhiteNoise |
+| `db` | PostgreSQL 16 | 0,3 – 0,8 | 400 – 700 MB | `shared_buffers` padrão 128 MB; cresce com cache do SO |
+| SO + Docker | dockerd, containerd, sshd | 0,1 | 400 – 500 MB | Ubuntu 24.04 |
+
+Soma de pico estimada: **~1,2 – 1,7 GB de RAM**. Valores de contêiner são estimativas de projeto a
+confirmar com `docker stats` na EC2 (evidência a anexar na entrega).
+
+### 14.2 Escolha do tipo de instância
+
+| Critério | `t3.small` (2 vCPU, 2 GB) | `t3.medium` (2 vCPU, 4 GB) | `t3.large` (2 vCPU, 8 GB) |
+| :--- | :--- | :--- | :--- |
+| Cabe no pico de memória | Sim, com folga pequena (~300 MB) | **Sim, com folga de ~2,3 GB** | Sim, ociosa |
+| Cache do PostgreSQL | Limitado | **Suficiente para o volume de 12 meses** | Excessivo |
+| Custo mensal (estimativa 24x7) | ≈ US$ 15 | **≈ US$ 30** | ≈ US$ 61 |
+| Uso recomendado | Mínimo / demonstração | **Recomendado** | Não necessário |
+
+**Decisão:** `t3.medium` para a avaliação (a `t3.small` é aceitável se o orçamento do laboratório exigir;
+ative *swap* de 1 GB nesse caso). Instâncias `t3` usam créditos de CPU: com tráfego de demonstração o
+consumo fica abaixo da linha de base.
+
+### 14.3 Custo mensal estimado (região `us-east-1`, sob demanda)
+
+| Componente | Configuração | Custo mensal estimado |
+| :--- | :--- | :--- |
+| EC2 | `t3.medium`, 730 h | ≈ US$ 30,4 |
+| EBS | gp3 20 GB | ≈ US$ 1,6 |
+| IPv4 público / Elastic IP | 1 endereço | ≈ US$ 3,7 |
+| Transferência de saída | < 100 GB | ≈ US$ 0 (primeiros 100 GB/mês gratuitos) |
+| **Total** | | **≈ US$ 36 / mês** (≈ US$ 21 com `t3.small`) |
+
+> Valores calculados com preços públicos de tabela e **devem ser confirmados na AWS Pricing Calculator**
+> no dia do deploy; a instância pode ser **parada** fora do horário de avaliação para reduzir o custo
+> (o EBS e o Elastic IP continuam cobrados).
+
+### 14.4 Rede e Security Group
+
+```plantuml
+@startuml
+title Implantação AP2 - EC2 + Docker Compose
+skinparam shadowing false
+skinparam defaultTextAlignment center
+
+actor "Cliente / App do\nentregador" as U
+cloud "AWS (us-east-1)" {
+  node "Security Group\nSSH 22 (IP do grupo)\nHTTP 8000 (IP do grupo e avaliador)\n5432 FECHADA" as SG {
+    node "EC2 t3.medium\nUbuntu 24.04 + Docker" as EC2 {
+      component "web\nDjango + DRF + gunicorn" as WEB
+      database "db\nPostgreSQL 16" as DB
+      storage "volume pgdata" as VOL
+    }
+  }
+}
+U --> WEB : HTTP :8000
+WEB --> DB : rede interna do Compose\n(5432 não publicada)
+DB --> VOL : /var/lib/postgresql/data
+@enduml
+```
+
+| Regra de entrada | Porta | Origem | Motivo |
+| :--- | :--- | :--- | :--- |
+| SSH | 22 | IP do grupo | Administração e deploy |
+| HTTP personalizado | 8000 | IP do grupo e do avaliador (ou `0.0.0.0/0` só durante a avaliação) | API e Admin |
+| PostgreSQL | 5432 | **Nenhuma** | Banco acessível apenas pela rede interna do Compose |

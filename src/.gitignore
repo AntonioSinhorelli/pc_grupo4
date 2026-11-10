@@ -2,3 +2,12 @@
 __pycache__/
 *.pyc
 db.sqlite3
+
+# Segredos: só o .env.example é versionado
+.env
+.env.*
+!.env.example
+
+# Artefatos gerados
+staticfiles/
+backups/

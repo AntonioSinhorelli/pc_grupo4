@@ -383,3 +383,42 @@ O projeto deverá atender aos seguintes pontos para aprovação dos requisitos s
 - infraestrutura dentro do orçamento definido;
 - infraestrutura principal documentada e versionada;
 - execução dos testes necessários para verificar os critérios de aceitação.
+
+---
+
+## 15. Adendo AP2 — Requisitos da solução implantada (EC2 + Docker + PostgreSQL)
+
+Na AP2 a arquitetura-alvo foi reduzida a uma **implantação mínima e verificável**: uma instância
+**Amazon EC2** executando **Docker Compose** com dois contêineres (`web`: Django REST + gunicorn;
+`db`: **PostgreSQL 16** com volume nomeado `pgdata`). Os requisitos abaixo valem para essa implantação
+e apontam a evidência no repositório (`src/`).
+
+### 15.1 Decisões de implantação
+
+| ID | Decisão | Justificativa |
+| :--- | :--- | :--- |
+| DEC-01 | **EC2** (Ubuntu 24.04) em vez de Elastic Beanstalk | Controle do ambiente e deploy reproduzível por `docker compose` |
+| DEC-02 | **Docker Compose** com serviços `web` e `db` | Mesma definição roda no Windows (desenvolvimento) e na EC2 |
+| DEC-03 | **PostgreSQL em contêiner** com volume `pgdata` | Menor custo para o escopo acadêmico; comparação com RDS em `dimensionamento_rds.md` §13 |
+| DEC-04 | Banco **multimodelo** no mesmo PostgreSQL (tabelas relacionais + JSONB com índice GIN) | Evita um segundo banco (ex.: DynamoDB) mantendo ACID no pedido e flexibilidade nos atributos |
+| DEC-05 | Segredos em `.env` fora do Git | `.env` no `.gitignore`/`.dockerignore`; apenas `.env.example` é versionado |
+
+### 15.2 Requisitos não funcionais da implantação
+
+| ID | Requisito | Meta / critério de aceite | Evidência |
+| :--- | :--- | :--- | :--- |
+| RNF-AP2-01 | Disponibilidade da API | `GET /health/` responde 200 com o banco acessível; `restart: unless-stopped` nos dois contêineres | `docker-compose.yml`, `loja/views.py::health`, teste `test_health` |
+| RNF-AP2-02 | Persistência | Dados sobrevivem a `docker compose down`/`up` (sem `-v`) | Volume nomeado `pgdata`; roteiro no README §6 |
+| RNF-AP2-03 | Isolamento do banco | Porta 5432 **não publicada**; Security Group libera apenas 22 (IP do grupo) e 8000 | `docker-compose.yml` (serviço `db` sem `ports`) |
+| RNF-AP2-04 | Segredos | Nenhuma senha/`SECRET_KEY` no Git; `SECRET_KEY` obrigatória com `DEBUG=False` | `settings.py`, `.env.example` |
+| RNF-AP2-05 | Integridade transacional | Checkout grava pedido, itens, entrega, evento e estoque numa transação; falha desfaz tudo (HTTP 409) | `loja/services.py`; testes `CheckoutTransacaoTests` |
+| RNF-AP2-06 | Desempenho de consulta JSON | Filtro por chave JSONB usa índice GIN (contenção `@>`) | `loja/filters.py`; medição em `dimensionamento_rds.md` §13.2 |
+| RNF-AP2-07 | Recuperação | Backup diário por `pg_dump` (retém 7) e restauração testada | `scripts/backup.sh`; §13.4 de `dimensionamento_rds.md` |
+| RNF-AP2-08 | Reprodutibilidade do deploy | `git push` → `git pull` → `docker compose up -d --build` em um único script | `scripts/deploy.sh`; `estrategias_deploy.md` §10 |
+| RNF-AP2-09 | Qualidade | Suíte automatizada com PostgreSQL real, 22 testes passando | `python manage.py test` |
+
+### 15.3 Restrições assumidas na AP2
+
+- Instância **única** (sem Multi-AZ): uma falha de AZ derruba a API; aceitável para a avaliação, e a evolução para ALB + RDS Multi-AZ continua descrita nos documentos de Elaboração.
+- Tráfego **HTTP** na porta 8000, sem TLS (sem domínio); a evolução é um ALB/CloudFront com ACM.
+- Autenticação por sessão/Basic Auth do Django; leitura pública e escrita autenticada.

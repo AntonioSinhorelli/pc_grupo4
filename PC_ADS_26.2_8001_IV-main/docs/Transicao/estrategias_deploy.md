@@ -632,3 +632,80 @@ Base: 20 deploys por mês, ASG com 2 instâncias (fora de pico), preços de refe
 | :--- | :--- | :--- | :--- |
 | 0.1 | 29/10/2026 | Grupo E-commerce | Criação do documento a partir do modelo SwiftTrack. |
 | 1.0 | 29/10/2026 | Grupo E-commerce | Comparação das estratégias, diagramas de atividades, tabela de atividades e estimativas. |
+
+---
+
+## 10. Adendo AP2 — Estratégia de deploy em EC2 com Docker Compose
+
+### 10.1 Estratégias consideradas
+
+| Estratégia | Como seria na EC2 | Indisponibilidade | Custo extra | Complexidade | Adequação à AP2 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Recreate** (adotada) | `git pull` + `docker compose up -d --build` recria o `web` | ~10–30 s | Nenhum | Baixa | **Sim** |
+| Rolling | Duas réplicas do `web` atrás de proxy, trocadas uma a uma | ~0 | Proxy + 2ª réplica (memória) | Média | Não (instância única) |
+| Blue/Green | Segunda EC2 (ou ALB com dois grupos) e troca do tráfego | ~0 | +100% de EC2 durante a troca | Alta | Não (custo) |
+
+**Escolha:** *recreate*. O `db` não é recriado (a imagem não muda), então o volume `pgdata` e os dados
+permanecem; apenas o `web` é reconstruído. A janela de 10–30 s é aceitável para a avaliação.
+
+### 10.2 Fluxo de deploy
+
+```plantuml
+@startuml
+title Atividades - Deploy (Windows -> GitHub -> EC2)
+start
+:Desenvolver e testar no Windows\n(docker compose up -d --build);
+:git commit e git push;
+partition "EC2 (SSH)" {
+  :cd pc_grupo4/src;
+  :./scripts/deploy.sh;
+  :Registrar commit atual\n(ponto de rollback);
+  if (db em execução?) then (sim)
+    :Backup pre-deploy\n(scripts/backup.sh);
+  endif
+  :git pull --ff-only;
+  :docker compose up -d --build;
+  :entrypoint: migrate, collectstatic,\nsuperusuário, gunicorn;
+  repeat
+    :GET /health/;
+  repeat while (200 em até 60 s?) is (não) not (sim)
+}
+if (API saudável?) then (sim)
+  :Deploy concluído;
+else (não)
+  :Rollback\n(git checkout commit anterior + up -d --build);
+  :Se houve migration destrutiva:\nrestaurar o backup pre-deploy;
+endif
+stop
+@enduml
+```
+
+> No `deploy.sh` o laço de *health check* é de 30 tentativas de 2 s; se esgotar, o script termina com erro e indica `docker compose logs web`.
+
+### 10.3 Tabela de atividades (tempo e custo)
+
+| # | Atividade | Responsável | Tempo (1º deploy) | Tempo (deploys seguintes) | Custo |
+| :--- | :--- | :--- | ---: | ---: | :--- |
+| 1 | Criar EC2, Security Group e Elastic IP | DevOps | 15 min | — | EC2 + EBS + IPv4 (ver `dimensionamento_ec2.md` §14.3) |
+| 2 | Instalar Docker, Compose e Git | DevOps | 10 min | — | — |
+| 3 | Clonar o repositório e criar o `.env` | DevOps | 5 min | — | — |
+| 4 | `docker compose up -d --build` (build da imagem) | DevOps | 4–6 min | 1–3 min (cache de camadas) | — |
+| 5 | Migrations, `collectstatic`, superusuário e seed | Automático (entrypoint) | 20–40 s | 5–15 s | — |
+| 6 | Verificar `/health/`, `/api/produtos/` e `/admin/` | Qualidade | 3 min | 1 min | — |
+| 7 | Coletar evidências (prints) | Documentação | 15 min | — | — |
+| | **Total** | | **≈ 50–55 min** | **≈ 3–6 min** | **≈ US$ 36/mês de infraestrutura** |
+
+Os tempos são estimativas de planejamento; os valores medidos no deploy real devem ser anotados
+nas evidências do README.
+
+### 10.4 Rollback
+
+| Situação | Ação | Tempo |
+| :--- | :--- | ---: |
+| Código com defeito, banco íntegro | `git checkout <commit anterior>` e `docker compose up -d --build` (o `deploy.sh` imprime o comando com o hash) | 1–3 min |
+| Migration problemática | Restaurar o backup gerado no pre-deploy (`gunzip -c backups/<arquivo>.sql.gz \| docker compose exec -T db sh -c 'psql ...'`) em banco recriado, depois voltar o código | 5–10 min |
+| Dados apagados por engano | Restaurar o último backup diário (perda máxima = intervalo do cron) | 5–10 min |
+| EC2 inacessível | Nova EC2 + `git clone` + `.env` + restauração do último dump copiado para fora da instância | ≈ 40 min |
+
+Migrations devem ser **aditivas** (novas colunas anuláveis/índices) para que o código antigo continue
+funcionando com o banco novo, o que torna o rollback de código seguro sem restaurar dados.

@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 db.sqlite3
 .git/
+# Segredos e artefatos locais nunca entram na imagem
+.env
+.env.*
+!.env.example
+staticfiles/
+backups/

@@ -13,9 +13,9 @@
 | **Projeto** | Plataforma de E-commerce com Logística Last-Mile Inteligente |
 | **Documento** | Modelo de Casos de Uso Arquiteturais |
 | **Versão** | 1.0 |
-| **Data** | [23/09/2026] |
+| **Data** | 23/09/2026 |
 | **Status** | Em Desenvolvimento |
-| **Responsável** | [Grupo E-commerce] |
+| **Responsável** | Grupo E-commerce |
 | **Disciplina** | Projeto de Cloud |
 
 ---
@@ -71,7 +71,7 @@ Os casos de uso arquiteturais abrangem a configuração, operação e manutenç�
 | **Identificador** | UC-ARQ-001 |
 | **Nome** | Configurar VPC e Rede do E-commerce |
 | **Versão** | 1.0 |
-| **Data** | [23/09/2026] |
+| **Data** | 23/09/2026 |
 | **Status** | Aprovado |
 | **Ator Principal** | Administrador de Infraestrutura |
 | **Ator Secundário** | Sistema AWS |
@@ -130,7 +130,7 @@ Os casos de uso arquiteturais abrangem a configuração, operação e manutenç�
 | **Identificador** | UC-ARQ-002 |
 | **Nome** | Configurar Segurança de Rede do E-commerce |
 | **Versão** | 1.0 |
-| **Data** | [23/09/2026] |
+| **Data** | 23/09/2026 |
 | **Status** | Aprovado |
 | **Ator Principal** | Administrador de Infraestrutura |
 | **Ator Secundário** | Arquiteto de Segurança, Sistema AWS |
@@ -181,7 +181,7 @@ Os casos de uso arquiteturais abrangem a configuração, operação e manutenç�
 | **Identificador** | UC-ARQ-003 |
 | **Nome** | Configurar VPC Endpoints do E-commerce |
 | **Versão** | 1.0 |
-| **Data** | [23/09/2026] |
+| **Data** | 23/09/2026 |
 | **Status** | Aprovado |
 | **Ator Principal** | Administrador de Infraestrutura |
 | **Ator Secundário** | Sistema AWS (DynamoDB, S3, Secrets Manager) |
@@ -233,7 +233,7 @@ Os casos de uso arquiteturais abrangem a configuração, operação e manutenç�
 | **Identificador** | UC-ARQ-004 |
 | **Nome** | Configurar Conectividade entre Camadas do E-commerce |
 | **Versão** | 1.0 |
-| **Data** | [23/09/2026] |
+| **Data** | 23/09/2026 |
 | **Status** | Aprovado |
 | **Ator Principal** | Administrador de Infraestrutura |
 | **Ator Secundário** | Engenheiro de DevOps |
@@ -285,7 +285,7 @@ Os casos de uso arquiteturais abrangem a configuração, operação e manutenç�
 | **Identificador** | UC-ARQ-005 |
 | **Nome** | Configurar Monitoramento do E-commerce |
 | **Versão** | 1.0 |
-| **Data** | [23/09/2026] |
+| **Data** | 23/09/2026 |
 | **Status** | Aprovado |
 | **Ator Principal** | Administrador de Infraestrutura |
 | **Ator Secundário** | Engenheiro de DevOps |
@@ -327,7 +327,7 @@ Os casos de uso arquiteturais abrangem a configuração, operação e manutenç�
 | **Identificador** | UC-ARQ-006 |
 | **Nome** | Configurar Pipeline de CI/CD do E-commerce |
 | **Versão** | 1.0 |
-| **Data** | [23/09/2026] |
+| **Data** | 23/09/2026 |
 | **Status** | Aprovado |
 | **Ator Principal** | Engenheiro de DevOps |
 | **Ator Secundário** | Sistema AWS (CodePipeline, CodeBuild, CodeDeploy) |
@@ -376,7 +376,7 @@ Os casos de uso arquiteturais abrangem a configuração, operação e manutenç�
 | **Identificador** | UC-ARQ-007 |
 | **Nome** | Definir Políticas de Segurança do E-commerce |
 | **Versão** | 1.0 |
-| **Data** | [23/09/2026] |
+| **Data** | 23/09/2026 |
 | **Status** | Aprovado |
 | **Ator Principal** | Arquiteto de Segurança |
 | **Ator Secundário** | Administrador de Infraestrutura |
@@ -441,5 +441,42 @@ Os casos de uso arquiteturais abrangem a configuração, operação e manutenç�
 
 | Versão | Data | Autor | Descrição das Alterações |
 |---|---|---|---|
-| 0.1 | [23/09/2026] | [Grupo E-commerce] | Criação inicial do documento. |
-| 1.0 | [23/09/2026] | [Grupo E-commerce] | Versão completa com todos os casos de uso. |
+| 0.1 | 23/09/2026 | Grupo E-commerce | Criação inicial do documento. |
+| 1.0 | 23/09/2026 | Grupo E-commerce | Versão completa com todos os casos de uso. |
+
+---
+
+## 7. Adendo AP2 — Casos de uso da solução implantada e rastreabilidade
+
+```plantuml
+@startuml
+title Casos de uso - API implantada na EC2
+left to right direction
+actor "Cliente / Comprador" as C
+actor "Entregador (app)" as E
+actor "Administrador" as A
+rectangle "API Last-Mile (Django REST em Docker na EC2)" {
+  usecase "UC-AP2-01\nConsultar catalogo\ne filtrar por atributo JSON" as U1
+  usecase "UC-AP2-02\nFinalizar compra (checkout)" as U2
+  usecase "UC-AP2-03\nCancelar pedido" as U3
+  usecase "UC-AP2-04\nRegistrar evento de rastreamento" as U4
+  usecase "UC-AP2-05\nAdministrar dados (Admin)" as U5
+  usecase "UC-AP2-06\nVerificar saude (/health/)" as U6
+}
+C --> U1
+C --> U2
+C --> U3
+E --> U4
+A --> U5
+A --> U6
+@enduml
+```
+
+| Caso de uso | Endpoint | Teste automatizado que o comprova |
+| :--- | :--- | :--- |
+| UC-AP2-01 | `GET /api/produtos/?atributos__cor=azul` | `test_filtro_por_campo_json`, `test_filtro_json_numerico_e_aninhado`, `test_filtro_igualdade_usa_operador_de_contencao_do_gin` |
+| UC-AP2-02 | `POST /api/pedidos/` | `test_checkout_grava_varias_tabelas_e_baixa_estoque`, `test_estoque_insuficiente_faz_rollback_completo`, `test_falha_no_meio_da_transacao_desfaz_tudo` |
+| UC-AP2-03 | `POST /api/pedidos/{id}/cancelar/` | `test_cancelar_devolve_estoque` |
+| UC-AP2-04 | `POST /api/entregas/{id}/eventos/` | `test_registrar_evento_atualiza_entrega_e_pedido`, `test_filtro_json_em_eventos`, `test_pedido_cancelado_nao_recebe_eventos` |
+| UC-AP2-05 | `/admin/` | `test_admin_funcional_para_superusuario`, `test_criar_superusuario_via_ambiente_e_idempotente`, `test_seed_e_idempotente` |
+| UC-AP2-06 | `GET /health/` | `test_health` |
