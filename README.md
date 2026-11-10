@@ -227,6 +227,7 @@ Capturar na EC2 depois do deploy e salvar em `PC_ADS_26.2_8001_IV-main/docs/asse
 - [ ] Tabela no Postgres: `docker compose exec db sh -c 'psql -U $POSTGRES_USER -d $POSTGRES_DB -c "\d loja_produto"'` (mostra o índice GIN)
 - [ ] Teste de persistência (antes e depois do `down`/`up`)
 - [ ] Security Group com 22 e 8000 e **sem** 5432
+- [ ] Consumo de recursos: `docker stats --no-stream`, `free -h`, `df -h /` (arquivo `18_recursos.png`)
 
 ## Segurança
 
