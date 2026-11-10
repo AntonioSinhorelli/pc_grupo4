@@ -25,6 +25,18 @@ ORIGEM_API="${ORIGEM_API:-${MEU_IP}/32}"
 VPC_ID=$(aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query 'Vpcs[0].VpcId' --output text)
 [ "$VPC_ID" != "None" ] || { echo "ERRO: sem VPC padrao nesta regiao"; exit 1; }
 
+# Se algo falhar antes da EC2 existir, desfaz o que foi criado para poder rodar de novo.
+SG_ID=""; LIMPAR=1
+limpar() {
+  if [ "$LIMPAR" = "1" ]; then
+    echo ">> falhou: removendo recursos parciais"
+    [ -n "$SG_ID" ] && aws ec2 delete-security-group --group-id "$SG_ID" 2>/dev/null || true
+    aws ec2 delete-key-pair --key-name "$CHAVE" 2>/dev/null || true
+    rm -f ~/"${CHAVE}.pem"
+  fi
+}
+trap limpar ERR
+
 echo ">> Security Group"
 SG_ID=$(aws ec2 create-security-group --group-name "${NOME}-sg" \
   --description "AP2 lastmile: SSH 22 e API 8000 (5432 fechada)" --vpc-id "$VPC_ID" \
@@ -53,11 +65,16 @@ chmod a+r /etc/apt/keyrings/docker.asc
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
 apt-get update -y
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# swap de 2 GB (instancias com pouca RAM)
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
 systemctl enable --now docker
 usermod -aG docker ubuntu
 touch /var/lib/cloud/instance/docker-pronto
 UD
 
+# Contas em plano gratuito so aceitam tipos "free-tier-eligible". Veja quais:
+#   aws ec2 describe-instance-types --filters Name=free-tier-eligible,Values=true --query 'InstanceTypes[].InstanceType' --output text
 echo ">> EC2 $TIPO"
 INSTANCE_ID=$(aws ec2 run-instances --image-id "$AMI" --instance-type "$TIPO" \
   --key-name "$CHAVE" --security-group-ids "$SG_ID" --user-data file:///tmp/user-data.sh \
@@ -65,6 +82,7 @@ INSTANCE_ID=$(aws ec2 run-instances --image-id "$AMI" --instance-type "$TIPO" \
   --metadata-options HttpTokens=required \
   --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${NOME}}]" \
   --query 'Instances[0].InstanceId' --output text)
+LIMPAR=0
 aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
 
 echo ">> Elastic IP"
