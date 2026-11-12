@@ -1,4 +1,4 @@
-| id    | casos_de_uso_arquiteturais |
+| id    | cua |
 |-------|------------------------------|
 | title | Casos de Uso Arquiteturais   |
 

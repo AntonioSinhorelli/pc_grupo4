@@ -1,4 +1,4 @@
-| id    | requisitos_suplementares |
+| id    | rs |
 |-------|---------------------------|
 | title | Requisitos Suplementares  |
 
@@ -399,7 +399,7 @@ e apontam a evidência no repositório (`src/`).
 | :--- | :--- | :--- |
 | DEC-01 | **EC2** (Ubuntu 24.04) em vez de Elastic Beanstalk | Controle do ambiente e deploy reproduzível por `docker compose` |
 | DEC-02 | **Docker Compose** com serviços `web` e `db` | Mesma definição roda no Windows (desenvolvimento) e na EC2 |
-| DEC-03 | **PostgreSQL em contêiner** com volume `pgdata` | Menor custo para o escopo acadêmico; comparação com RDS em `dimensionamento_rds.md` §13 |
+| DEC-03 | **PostgreSQL em contêiner** com volume `pgdata` | Menor custo para o escopo acadêmico; comparação com RDS em `dimrbd.md` §13 |
 | DEC-04 | Banco **multimodelo** no mesmo PostgreSQL (tabelas relacionais + JSONB com índice GIN) | Evita um segundo banco (ex.: DynamoDB) mantendo ACID no pedido e flexibilidade nos atributos |
 | DEC-05 | Segredos em `.env` fora do Git | `.env` no `.gitignore`/`.dockerignore`; apenas `.env.example` é versionado |
 
@@ -412,9 +412,9 @@ e apontam a evidência no repositório (`src/`).
 | RNF-AP2-03 | Isolamento do banco | Porta 5432 **não publicada**; Security Group libera apenas 22 (IP do grupo) e 8000 | `docker-compose.yml` (serviço `db` sem `ports`) |
 | RNF-AP2-04 | Segredos | Nenhuma senha/`SECRET_KEY` no Git; `SECRET_KEY` obrigatória com `DEBUG=False` | `settings.py`, `.env.example` |
 | RNF-AP2-05 | Integridade transacional | Checkout grava pedido, itens, entrega, evento e estoque numa transação; falha desfaz tudo (HTTP 409) | `loja/services.py`; testes `CheckoutTransacaoTests` |
-| RNF-AP2-06 | Desempenho de consulta JSON | Filtro por chave JSONB usa índice GIN (contenção `@>`) | `loja/filters.py`; medição em `dimensionamento_rds.md` §13.2 |
-| RNF-AP2-07 | Recuperação | Backup diário por `pg_dump` (retém 7) e restauração testada | `scripts/backup.sh`; §13.4 de `dimensionamento_rds.md` |
-| RNF-AP2-08 | Reprodutibilidade do deploy | `git push` → `git pull` → `docker compose up -d --build` em um único script | `scripts/deploy.sh`; `estrategias_deploy.md` §10 |
+| RNF-AP2-06 | Desempenho de consulta JSON | Filtro por chave JSONB usa índice GIN (contenção `@>`) | `loja/filters.py`; medição em `dimrbd.md` §13.2 |
+| RNF-AP2-07 | Recuperação | Backup diário por `pg_dump` (retém 7) e restauração testada | `scripts/backup.sh`; §13.4 de `dimrbd.md` |
+| RNF-AP2-08 | Reprodutibilidade do deploy | `git push` → `git pull` → `docker compose up -d --build` em um único script | `scripts/deploy.sh`; `ativ_deploy.md` §10 |
 | RNF-AP2-09 | Qualidade | Suíte automatizada com PostgreSQL real, 22 testes passando | `python manage.py test` |
 
 ### 15.3 Restrições assumidas na AP2

@@ -1042,7 +1042,7 @@ Medido na EC2 `c7i-flex.large` com `docker stats --no-stream`, `free -h` e `df -
 | Recurso | Medido | Estimativa de §14.1 | Leitura |
 | :--- | :--- | :--- | :--- |
 | Contêiner `web` (memória) | 103,4 MiB (2,71%) | 300 – 450 MB | Abaixo do previsto em repouso; sobe com mais requisições e workers |
-| Contêiner `db` (memória) | 22,3 MiB (0,58%) | 400 – 700 MB | Banco pequeno e quase sem cache; cresce com o volume (ver `dimensionamento_rds.md` §13.3) |
+| Contêiner `db` (memória) | 22,3 MiB (0,58%) | 400 – 700 MB | Banco pequeno e quase sem cache; cresce com o volume (ver `dimrbd.md` §13.3) |
 | CPU `web` / `db` | 0,01% / 3,04% | 0,5–1 vCPU / 0,3–0,8 vCPU | Ocioso; as estimativas valem para pico |
 | Memória total do host | 751 MiB usados de 3,7 GiB; 3,0 GiB disponíveis | 1,2 – 1,7 GB | Folga de ~80% |
 | Swap | 2,0 GiB, 0 B em uso | — | Criado pelo `user-data` como proteção |

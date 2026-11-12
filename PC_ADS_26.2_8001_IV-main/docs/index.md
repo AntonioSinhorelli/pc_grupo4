@@ -27,11 +27,24 @@ hide:
 
 | Fase | Documento |
 | :--- | :--- |
-| Iniciação | [Documento de Visão](Iniciacao/documento_de_visao.md) |
-| Iniciação | [Requisitos Suplementares](Iniciacao/requisitos_suplementares.md) |
-| Elaboração | [Casos de Uso Arquiteturais](Elaboracao/casos_de_uso_arquiteturais.md) |
-| Elaboração | [Modelo de Análise (Pacotes/Subsistemas)](Elaboracao/modelo_de_analise.md) |
-| Elaboração | [Modelo de Análise (Dimensionamento BD)](Elaboracao/dimensionamento_rds.md) |
-| Elaboração | [Modelo de Análise (Modelo de Computação)](Elaboracao/dimensionamento_ec2.md) |
+| Iniciação | [Documento de Visão](Iniciacao/dv.md) |
+| Iniciação | [Requisitos Suplementares](Iniciacao/rs.md) |
+| Elaboração | [Casos de Uso Arquiteturais](Elaboracao/cua.md) |
+| Elaboração | [Modelo de Análise (Pacotes/Subsistemas)](Elaboracao/maps.md) |
+| Elaboração | [Modelo de Análise (Dimensionamento BD)](Elaboracao/dimrbd.md) |
+| Elaboração | [Modelo de Análise (Modelo de Computação)](Elaboracao/dim_comp.md) |
+| Elaboração | [Sequência e Comunicação](Elaboracao/seq_com.md) |
 | Elaboração | [Modelo de Design (Consolidação Arquitetural)](Elaboracao/consolidacao_arquitetural.md) |
-| Transição | [Modelo de Design (Atividades - Deploy)](Transicao/estrategias_deploy.md) |
+| Transição | [Modelo de Design (Atividades - Deploy)](Transicao/ativ_deploy.md) |
+
+## Solução implantada (AP2)
+
+| Item | Onde |
+| :--- | :--- |
+| API Django REST em Docker na EC2 | <http://77.112.118.58:8000/api/> |
+| Health check | <http://77.112.118.58:8000/health/> |
+| Código, Dockerfile, docker-compose e evidências | <https://github.com/AntonioSinhorelli/pc_grupo4> |
+| Arquitetura | EC2 `c7i-flex.large` (us-east-2) + Docker Compose (`web`: Django + gunicorn; `db`: PostgreSQL 16 com volume `pgdata`) |
+
+Cada documento das fases abaixo tem um **Adendo AP2** com o que foi efetivamente implantado; os demais conteúdos descrevem a arquitetura-alvo de longo prazo.
+

@@ -686,7 +686,7 @@ stop
 
 | # | Atividade | Responsável | Tempo (1º deploy) | Tempo (deploys seguintes) | Custo |
 | :--- | :--- | :--- | ---: | ---: | :--- |
-| 1 | Criar EC2, Security Group e Elastic IP | DevOps | 15 min | — | EC2 + EBS + IPv4 (ver `dimensionamento_ec2.md` §14.3) |
+| 1 | Criar EC2, Security Group e Elastic IP | DevOps | 15 min | — | EC2 + EBS + IPv4 (ver `dim_comp.md` §14.3) |
 | 2 | Instalar Docker, Compose e Git | DevOps | 10 min | — | — |
 | 3 | Clonar o repositório e criar o `.env` | DevOps | 5 min | — | — |
 | 4 | `docker compose up -d --build` (build da imagem) | DevOps | 4–6 min | 1–3 min (cache de camadas) | — |

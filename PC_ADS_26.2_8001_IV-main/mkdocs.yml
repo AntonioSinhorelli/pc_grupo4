@@ -8,20 +8,21 @@ nav:
   - Home: index.md
   - Iniciação:
       - Index: Iniciacao/index.md
-      - Documento de Visão: Iniciacao/documento_de_visao.md
-      - Requisitos Suplementares: Iniciacao/requisitos_suplementares.md
+      - Documento de Visão: Iniciacao/dv.md
+      - Requisitos Suplementares: Iniciacao/rs.md
   - Elaboração:
       - Index: Elaboracao/index.md
-      - Casos de Uso Arquiteturais: Elaboracao/casos_de_uso_arquiteturais.md
-      - Modelo de Análise (Pacotes/Subsistemas): Elaboracao/modelo_de_analise.md
-      - Modelo de Análise (Dimensionamento BD): Elaboracao/dimensionamento_rds.md
-      - Modelo de Análise (Modelo de Computação): Elaboracao/dimensionamento_ec2.md
+      - Casos de Uso Arquiteturais: Elaboracao/cua.md
+      - Modelo de Análise (Pacotes/Subsistemas): Elaboracao/maps.md
+      - Modelo de Análise (Dimensionamento BD): Elaboracao/dimrbd.md
+      - Modelo de Análise (Modelo de Computação): Elaboracao/dim_comp.md
+      - Sequência e Comunicação: Elaboracao/seq_com.md
       - Modelo de Design (Consolidação Arquitetural): Elaboracao/consolidacao_arquitetural.md
   - Construção:
       - Index: Construcao/index.md
   - Transição:
       - Index: Transicao/index.md
-      - Modelo de Design (Atividades - Deploy): Transicao/estrategias_deploy.md
+      - Modelo de Design (Atividades - Deploy): Transicao/ativ_deploy.md
 
 extra_css:
   - css/extra.css

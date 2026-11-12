@@ -1,4 +1,4 @@
-| id    | documento_de_visao       |
+| id    | dv       |
 |-------|--------------------------|
 | title | Documento de Visão       |
 
@@ -155,7 +155,45 @@ Para implementar a visão proposta, a arquitetura AWS foi desenhada com os segui
 
 | Versão | Data | Descrição da Alteração | Autor(es) |
 |---|---|---|---|
-| 0.1 | [04/09/2026] | Criação da estrutura inicial do documento, com base no padrão RUP/UP e no modelo de referência da disciplina. | [Ricardo] |
+| 0.1 | 04/09/2026 | Criação da estrutura inicial do documento, com base no padrão RUP/UP e no modelo de referência da disciplina. | [Ricardo] |
 | 0.2 | 15/09/2026 | Inclusão do posicionamento de mercado e da descrição dos stakeholders. | Grupo IV |
 | 0.3 | 29/10/2026 | Detalhamento da arquitetura AWS e dos atributos de qualidade (SLAs/SLOs). | Grupo IV |
 | 1.0 | 08/11/2026 | Versão final para a AP2: arquitetura implantada em EC2 + Docker + PostgreSQL (ver Requisitos Suplementares §15). | Grupo IV |
+
+---
+
+## 9. Adendo AP2 — Escopo da solução implantada
+
+Para a AP2, a visão acima foi realizada numa **versão mínima e verificável**, implantada na AWS e acessível em <http://77.112.118.58:8000/api/>.
+
+### 9.1 Problema atendido nesta entrega
+
+Lojas que vendem produtos muito diferentes entre si (eletrônicos, casa, moda) precisam guardar atributos variáveis por produto sem perder a consistência do pedido e do estoque, e acompanhar a entrega até o cliente. A AP2 entrega o núcleo disso: catálogo com atributos flexíveis, checkout consistente e rastreamento da entrega.
+
+### 9.2 Partes interessadas atendidas
+
+| Parte interessada | O que usa na AP2 |
+| :--- | :--- |
+| Cliente / comprador | Consulta o catálogo, filtra por atributos e faz o checkout pela API |
+| Entregador | Registra eventos de rastreamento (status, latitude, longitude e dados livres em JSON) |
+| Administrador da loja | Cadastra e consulta tudo pelo Django Admin |
+| Equipe de operação (grupo) | Faz deploy, backup e acompanha a saúde da API (`/health/`) |
+
+### 9.3 Funcionalidades entregues
+
+| Funcionalidade | Como foi implementada |
+| :--- | :--- |
+| Catálogo com atributos variáveis | `Produto.atributos` em JSONB com índice GIN e filtro `?atributos__<chave>=<valor>` |
+| Checkout consistente | Transação única que grava pedido, itens, entrega e evento e baixa o estoque; falha desfaz tudo |
+| Cancelamento | Devolve o estoque na mesma transação |
+| Rastreamento da entrega | `EventoRastreamento.dados` em JSONB com índice GIN |
+| Administração | Django Admin com todos os modelos |
+
+### 9.4 Restrições desta entrega
+
+- Uma única instância EC2 (`c7i-flex.large`, us-east-2) com Docker Compose; sem balanceador nem alta disponibilidade.
+- PostgreSQL em contêiner com volume nomeado, em vez de RDS (comparação em [Dimensionamento de Banco de Dados](../Elaboracao/dimrbd.md)).
+- API em HTTP na porta 8000, sem domínio nem TLS.
+- A conta AWS do laboratório aceita apenas tipos de instância do plano gratuito.
+
+A arquitetura-alvo das seções 4 a 7 permanece como evolução planejada.
